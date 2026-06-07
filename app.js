@@ -200,7 +200,8 @@ let warpTarget = 1.0;
 
 // Camera Coordinates / Angles
 let camX = 0, camY = 0, camZ = 0;
-let targetCamX = 0, targetCamY = 0, targetCamZ = 600; // Normal orbiting distance
+const defaultCamZ = window.innerWidth < 768 ? 920 : 600;
+let targetCamX = 0, targetCamY = 0, targetCamZ = defaultCamZ; // Normal orbiting distance
 
 let yaw = 0, pitch = 0;
 let targetYaw = 0, targetPitch = 0.1; // Slow pitch tilt initially
@@ -817,11 +818,12 @@ function renderUniverse(timestamp) {
       p.angle += p.orbitSpeed;
     }
     
-    // Orbital coordinates on a flat plane tilted 15 degrees
+    // Scale orbits dynamically according to viewport size
+    const scaleFactor = Math.max(0.42, Math.min(1.0, window.innerWidth / 1200));
     const tilt = 15 * Math.PI / 180;
-    const px = p.orbitRadius * Math.cos(p.angle);
-    const pz = p.orbitRadius * Math.sin(p.angle) * Math.cos(tilt);
-    const py = p.orbitRadius * Math.sin(p.angle) * Math.sin(tilt);
+    const px = p.orbitRadius * scaleFactor * Math.cos(p.angle);
+    const pz = p.orbitRadius * scaleFactor * Math.sin(p.angle) * Math.cos(tilt);
+    const py = p.orbitRadius * scaleFactor * Math.sin(p.angle) * Math.sin(tilt);
     
     const proj = project3D(px, py, pz);
     
@@ -996,25 +998,31 @@ function diveIntoPlanet(planet) {
   // Freeze auto-rotation, update yaw and pitch to center-left space coordinates
   targetPitch = 0.0;
   
-  // Calculate relative orbital coordinates
+  // Calculate relative orbital coordinates with scaling factor
+  const scaleFactor = Math.max(0.42, Math.min(1.0, window.innerWidth / 1200));
   const tilt = 15 * Math.PI / 180;
-  const px = planet.orbitRadius * Math.cos(planet.angle);
-  const pz = planet.orbitRadius * Math.sin(planet.angle) * Math.cos(tilt);
-  const py = planet.orbitRadius * Math.sin(planet.angle) * Math.sin(tilt);
+  const px = planet.orbitRadius * scaleFactor * Math.cos(planet.angle);
+  const pz = planet.orbitRadius * scaleFactor * Math.sin(planet.angle) * Math.cos(tilt);
+  const py = planet.orbitRadius * scaleFactor * Math.sin(planet.angle) * Math.sin(tilt);
   
   // Align yaw so camera points directly towards target planet
   targetYaw = -planet.angle + Math.PI / 2;
   
-  // Zoom camera zDepth near the planet, pan coordinates offset to place planet on the left of screen
+  // Zoom camera zDepth near the planet, panning offset based on mobile vs desktop layout
+  const isMobile = window.innerWidth < 768;
+  const targetCamXOffset = isMobile ? px : px - 80;
+  const targetCamYOffset = isMobile ? py - 45 : py; // push planet up on mobile to leave space for sheet
+  const targetCamZOffset = isMobile ? pz - 200 : pz - 160;
+  
   gsap.to(window, {
     duration: 1.1,
     onStart: () => {
       gsap.to(window, {
         duration: 0.9,
         onUpdate: () => {
-          camX = px - 80;
-          camY = py;
-          camZ = pz - 160;
+          camX = targetCamXOffset;
+          camY = targetCamYOffset;
+          camZ = targetCamZOffset;
         }
       });
     }
@@ -1066,10 +1074,11 @@ function returnToOrbit() {
     onUpdate: () => {
       camX = 0;
       camY = 0;
-      camZ = 600;
+      const defCamZ = window.innerWidth < 768 ? 920 : 600;
+      camZ = defCamZ;
       targetCamX = 0;
       targetCamY = 0;
-      targetCamZ = 600;
+      targetCamZ = defCamZ;
     }
   });
   
