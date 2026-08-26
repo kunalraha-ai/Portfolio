@@ -1,0 +1,10 @@
+.next/
+node_modules/
+out/
+.vercel/
+*.log
+.env*
+!.env.example
+.playwright-cli/
+.agents/
+skills-lock.json
